@@ -26,6 +26,18 @@ class HanoiTower:
         ranges = [range(3) for i in range(self.n_pallets)]
         to_return = [np.array(x) for x in itertools.product(*ranges)]
         return to_return
+    
+    def get_interesting_states (self):
+        def sub_get_interesting_states (n_pallets, parity):
+            if n_pallets == 1:
+                return [[0], [1 if parity else 2]]
+            else:
+                prev_int = sub_get_interesting_states(n_pallets-1, not parity)
+                to_return = []
+                for state in prev_int:
+                    to_return.append(state + [0])
+                return to_return + [[((1-i if parity else 2-i ))%3 for i in state] for state in to_return[::-1]]
+        return sub_get_interesting_states(self.n_pallets, parity=self.n_pallets%2==0)
 
     def reset (self):
         return np.random.randint(3, size=(self.n_pallets, ))

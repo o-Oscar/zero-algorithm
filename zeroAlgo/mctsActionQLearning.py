@@ -6,13 +6,13 @@ import torch.nn.functional as F
 import torch.optim as optim
 
 import matplotlib.pyplot as plt
-
+import time
+import os
 import itertools
 
 from mcts_utils import MCTS
 from networks import ValueNetwork, ActionNetwork
 
-import time
 
 class mctsActionQLearning ():
     """
@@ -34,8 +34,12 @@ class mctsActionQLearning ():
         all_parameters = list(self.value_network.parameters()) + list(self.action_network.parameters())
         self.optimizer = optim.Adam(all_parameters, lr=0.001)
 
-        self.n_action_only = 0
+        self.n_action_only = 1
 
+
+    def set_train_advancement (self, adv):
+        self.n_action_only = 1 if adv < .3 else 10
+        self.value_epsilon = np.power(10, 10-10*adv)
 
     def choose_expl_action (self, state):
         """
@@ -60,6 +64,11 @@ class mctsActionQLearning ():
         # print(time.time()-start)
         return action, action_dist, mcts.all_q[action]
     
+    def choose_best_action (self, state):
+        # action, action_dist, q_value = self.choose_expl_action (state)
+        action = np.argmax(self.action_network(self.game_model.generate_obs(state)).detach().numpy().flatten())
+        return action
+
     def multi_steps_calc_value (self, n_steps, state):
         to_return = 0
         fac = 1 # self.gamma
@@ -147,3 +156,12 @@ class mctsActionQLearning ():
             all_actor_loss.append(action_loss.detach().numpy())
             self.optimizer.step()
         return all_actor_loss
+
+    def save (self, base_path):
+        torch.save(self.value_network.state_dict(), os.path.join(base_path, "value_network"))
+        torch.save(self.action_network.state_dict(), os.path.join(base_path, "action_network"))
+
+    
+    def load (self, base_path):
+        self.value_network.load_state_dict(torch.load(os.path.join(base_path, "value_network")))
+        self.action_network.load_state_dict(torch.load(os.path.join(base_path, "action_network")))

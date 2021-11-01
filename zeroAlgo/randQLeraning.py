@@ -6,8 +6,8 @@ import torch.nn.functional as F
 import torch.optim as optim
 
 import matplotlib.pyplot as plt
-
 import itertools
+import os
 
 from networks import ValueNetwork
 
@@ -90,6 +90,8 @@ class RandQLearning:
             loss.backward()
             all_loss.append(loss.detach().numpy())
             self.optimizer.step()
+        
+        self.fit_traget_network ()
     
     def fit_traget_network (self, retention=0.2):
         """
@@ -102,3 +104,9 @@ class RandQLearning:
         for (key, cur_value), (_, target_value) in zip(self.value_network.state_dict().items(), self.target_value_network.state_dict().items()):
             new_target_dict[key] = retention * target_value + (1-retention)* cur_value
         self.target_value_network.load_state_dict(new_target_dict)
+
+    def save (self, base_path):
+        torch.save(self.value_network.state_dict(), os.path.join(base_path, "value_network"))
+    
+    def load (self, base_path):
+        self.value_network.load_state_dict(torch.load(os.path.join(base_path, "value_network")))
